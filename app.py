@@ -38,7 +38,7 @@ if "anio" in df_serie.columns and "mes" in df_serie.columns:
 MERCADERIAS = sorted(df_ranking["mercaderia"].dropna().unique().tolist())
 PUERTOS = sorted(df_puerto["aduana"].dropna().unique().tolist())
 
-df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
+#df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
 
 for col in ["total_gs", "kilo_neto", "kilo_bruto", "flete_usd", "seguro_usd"]:
     for df in [df_puerto, df_ranking, df_serie]:
@@ -205,7 +205,7 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
     df_f = df_serie.copy()
     df_r = df_ranking.copy()
     df_p = df_puerto.copy()
-
+    df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
     anio_min, anio_max = periodo
     df_f = df_f[(df_f["anio"] >= anio_min) & (df_f["anio"] <= anio_max)]
 
@@ -278,6 +278,7 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8050)
+
 
 
 
