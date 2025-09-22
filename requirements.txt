@@ -1,7 +1,8 @@
 dash==2.17.1
 dash-bootstrap-components==1.6.0
 plotly==5.24.1
-pandas==2.2.2
+pandas
 pyarrow==17.0.0
 gunicorn
+
 
