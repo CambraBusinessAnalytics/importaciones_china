@@ -3,6 +3,7 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
 import io
 
@@ -19,11 +20,19 @@ df_puerto  = read_parquet_from_url(url_puerto)
 df_ranking = read_parquet_from_url(url_ranking)
 df_serie   = read_parquet_from_url(url_serie)
 
+# -------- Normalización de fechas --------
+mes_map = {
+    "ENERO": 1, "FEBRERO": 2, "MARZO": 3, "ABRIL": 4,
+    "MAYO": 5, "JUNIO": 6, "JULIO": 7, "AGOSTO": 8,
+    "SEPTIEMBRE": 9, "OCTUBRE": 10, "NOVIEMBRE": 11, "DICIEMBRE": 12
+}
 
-# Ajustar columna fecha
-df_serie["fecha"] = pd.to_datetime(
-    dict(year=df_serie["anio"], month=df_serie["mes"], day=1)
-)
+if "anio" in df_serie.columns and "mes" in df_serie.columns:
+    df_serie["mes_num"] = df_serie["mes"].str.upper().map(mes_map)
+    df_serie["fecha"] = pd.to_datetime(
+        df_serie["anio"].astype(str) + "-" + df_serie["mes_num"].astype(str) + "-01",
+        format="%Y-%m-%d"
+    )
 
 # Listas únicas para dropdowns
 MERCADERIAS = sorted(df_ranking["mercaderia"].dropna().unique().tolist())
@@ -195,14 +204,16 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
     if mercaderias:
         df_r = df_r[df_r["mercaderia"].isin(mercaderias)]
         df_p = df_p[df_p["mercaderia"].isin(mercaderias)]
+        df_f = df_f[df_f["mercaderia"].isin(mercaderias)]
     if puertos:
         df_p = df_p[df_p["aduana"].isin(puertos)]
+        df_f = df_f[df_f["aduana"].isin(puertos)]
 
-    # --- KPIs (usar ranking para sumar flete/seguro y volumen global) ---
-    total_kilo = df_r["kilo_neto"].sum()
-    total_valor = df_r["total_gs"].sum()
-    total_flete = df_r["flete_usd"].sum()
-    total_seguro = df_r["seguro_usd"].sum()
+    # --- KPIs (usar df_f que refleja los filtros aplicados) ---
+    total_kilo = df_f["kilo_neto"].sum()
+    total_valor = df_f["total_gs"].sum()
+    total_flete = df_f["flete_usd"].sum()
+    total_seguro = df_f["seguro_usd"].sum()
 
     # --- Serie temporal ---
     if tab_temporal == "kilo":
@@ -248,5 +259,7 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8050)
+
+
 
 
