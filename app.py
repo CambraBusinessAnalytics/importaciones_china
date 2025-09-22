@@ -3,17 +3,21 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
 import pandas as pd
 import plotly.express as px
+import requests
+import io
 
+def read_parquet_from_url(url):
+    r = requests.get(url)
+    r.raise_for_status()  # lanza error si no es 200
+    return pd.read_parquet(io.BytesIO(r.content))
 
-# URLs públicas en GCS
 url_puerto  = "https://storage.googleapis.com/datos_sueltos/china/china_mercaderia_puerto.parquet"
 url_ranking = "https://storage.googleapis.com/datos_sueltos/china/china_ranking_mercaderias.parquet"
 url_serie   = "https://storage.googleapis.com/datos_sueltos/china/china_serie_mensual.parquet"
 
-# Leer los .parquet directamente desde GCS
-df_puerto  = pd.read_parquet(url_puerto)
-df_ranking = pd.read_parquet(url_ranking)
-df_serie   = pd.read_parquet(url_serie)
+df_puerto  = read_parquet_from_url(url_puerto)
+df_ranking = read_parquet_from_url(url_ranking)
+df_serie   = read_parquet_from_url(url_serie)
 
 
 # Ajustar columna fecha
@@ -244,4 +248,5 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8050)
+
 
