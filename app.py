@@ -38,6 +38,14 @@ if "anio" in df_serie.columns and "mes" in df_serie.columns:
 MERCADERIAS = sorted(df_ranking["mercaderia"].dropna().unique().tolist())
 PUERTOS = sorted(df_puerto["aduana"].dropna().unique().tolist())
 
+df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
+
+for col in ["total_gs", "kilo_neto", "kilo_bruto", "flete_usd", "seguro_usd"]:
+    for df in [df_puerto, df_ranking, df_serie]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+
 # ------------------- Instancia Dash -------------------
 app = dash.Dash(
     __name__,
@@ -215,6 +223,17 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
     total_flete = df_f["flete_usd"].sum()
     total_seguro = df_f["seguro_usd"].sum()
 
+    if not df_p.empty:
+        df_p = df_p.dropna(subset=["total_gs"])
+        fig_tree = px.treemap(
+            df_p, path=["aduana", "mercaderia"], values="total_gs",
+            title="Composición de mercaderías por puerto (valor Gs)"
+        )
+    else:
+        fig_tree = go.Figure()
+        fig_tree.update_layout(title="Sin datos")
+
+
     # --- Serie temporal ---
     if tab_temporal == "kilo":
         fig_temporal = px.line(df_f, x="fecha", y="kilo_neto", title="Evolución de Volumen (Kg Neto)")
@@ -259,6 +278,7 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8050)
+
 
 
 
