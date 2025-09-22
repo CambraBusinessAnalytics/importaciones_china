@@ -1,0 +1,10 @@
+/* Cambiar color de los enlaces a negro */
+.nav-link-custom {
+    color: black !important;   /* Texto en negro */
+}
+
+/* Cambiar color del enlace activo a fondo negro con texto blanco */
+.nav-link-custom.active {
+    background-color: black !important;
+    color: white !important;
+}
