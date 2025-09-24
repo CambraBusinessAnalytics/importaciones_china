@@ -27,24 +27,26 @@ mes_map = {
     "SEPTIEMBRE": 9, "OCTUBRE": 10, "NOVIEMBRE": 11, "DICIEMBRE": 12
 }
 
+# Asegurar que 'anio' es numérico
+if "anio" in df_serie.columns:
+    df_serie["anio"] = pd.to_numeric(df_serie["anio"], errors="coerce")
+
 if "anio" in df_serie.columns and "mes" in df_serie.columns:
     df_serie["mes_num"] = df_serie["mes"].str.upper().map(mes_map)
     df_serie["fecha"] = pd.to_datetime(
-        df_serie["anio"].astype(str) + "-" + df_serie["mes_num"].astype(str) + "-01",
-        format="%Y-%m-%d"
+        df_serie["anio"].astype(int).astype(str) + "-" + df_serie["mes_num"].astype(int).astype(str) + "-01",
+        errors="coerce"
     )
 
 # Listas únicas para dropdowns
 MERCADERIAS = sorted(df_ranking["mercaderia"].dropna().unique().tolist())
 PUERTOS = sorted(df_puerto["aduana"].dropna().unique().tolist())
 
-#df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
-
+# Forzar numérico en columnas críticas
 for col in ["total_gs", "kilo_neto", "kilo_bruto", "flete_usd", "seguro_usd"]:
     for df in [df_puerto, df_ranking, df_serie]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-
 
 # ------------------- Instancia Dash -------------------
 app = dash.Dash(
@@ -127,10 +129,10 @@ app.layout = dbc.Container([
                     html.Label("Período"),
                     dcc.RangeSlider(
                         id="china-periodo",
-                        min=df_serie["anio"].min(),
-                        max=df_serie["anio"].max(),
-                        value=[df_serie["anio"].min(), df_serie["anio"].max()],
-                        marks={str(y): str(y) for y in sorted(df_serie["anio"].unique())}
+                        min=int(df_serie["anio"].min()),
+                        max=int(df_serie["anio"].max()),
+                        value=[int(df_serie["anio"].min()), int(df_serie["anio"].max())],
+                        marks={str(int(y)): str(int(y)) for y in sorted(df_serie["anio"].dropna().unique())}
                     )
                 ], md=4, sm=12),
             ])
@@ -206,6 +208,7 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
     df_r = df_ranking.copy()
     df_p = df_puerto.copy()
     df_p["total_gs"] = pd.to_numeric(df_p["total_gs"], errors="coerce")
+
     anio_min, anio_max = periodo
     df_f = df_f[(df_f["anio"] >= anio_min) & (df_f["anio"] <= anio_max)]
 
@@ -217,22 +220,11 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
         df_p = df_p[df_p["aduana"].isin(puertos)]
         df_f = df_f[df_f["aduana"].isin(puertos)]
 
-    # --- KPIs (usar df_f que refleja los filtros aplicados) ---
+    # --- KPIs ---
     total_kilo = df_f["kilo_neto"].sum()
     total_valor = df_f["total_gs"].sum()
     total_flete = df_f["flete_usd"].sum()
     total_seguro = df_f["seguro_usd"].sum()
-
-    if not df_p.empty:
-        df_p = df_p.dropna(subset=["total_gs"])
-        fig_tree = px.treemap(
-            df_p, path=["aduana", "mercaderia"], values="total_gs",
-            title="Composición de mercaderías por puerto (valor Gs)"
-        )
-    else:
-        fig_tree = go.Figure()
-        fig_tree.update_layout(title="Sin datos")
-
 
     # --- Serie temporal ---
     if tab_temporal == "kilo":
@@ -251,10 +243,12 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
     # --- Treemap por puerto ---
     if not df_p.empty:
+        df_p = df_p.dropna(subset=["total_gs"])
         fig_tree = px.treemap(df_p, path=["aduana", "mercaderia"], values="total_gs",
                               title="Composición de mercaderías por puerto (valor Gs)")
     else:
-        fig_tree = px.treemap(title="Sin datos")
+        fig_tree = go.Figure()
+        fig_tree.update_layout(title="Sin datos")
 
     # --- Tabla detalle ---
     cols = ["mercaderia", "kilo_neto", "total_gs", "flete_usd", "seguro_usd"]
@@ -278,9 +272,5 @@ def actualizar_dashboard(mercaderias, puertos, periodo, tab_temporal):
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8050)
-
-
-
-
 
 
